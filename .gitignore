@@ -1,6 +1,7 @@
 build/
 .DS_Store
 .dysm
+vcpkg_installed/
 
 .vscode/
 
