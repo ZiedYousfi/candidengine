@@ -8,19 +8,14 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# # Library sources
-# set(${PROJECT_NAME}_SOURCES
-# )
-
+# Library sources
+set(${PROJECT_NAME}_SOURCES
+  src/renderer.c
+)
 # Library headers
 set(${PROJECT_NAME}_HEADERS
-  include/hw.h
+  include/renderer.h
 )
-
-# Create the main library target once below, add headers/sources there.
-# add_library(${PROJECT_NAME} ${${PROJECT_NAME}_HEADERS})
-
-# add_library(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES} ${${PROJECT_NAME}_HEADERS})
 
 ################################################################################
 # Dependencies
@@ -37,22 +32,18 @@ find_package(SDL3_ttf CONFIG REQUIRED)
 # Main Library Target
 ################################################################################
 
-add_library(${PROJECT_NAME} INTERFACE)
-
-# Set standard properties
-## NOTE: This is an INTERFACE (header-only) library. It doesn't contain
-## source files and only provides headers/compile options for consumers.
+add_library(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES} ${${PROJECT_NAME}_HEADERS})
 
 # Compiler options (cross-platform)
 target_compile_options(${PROJECT_NAME}
-  INTERFACE
+  PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/W4 /permissive->
     $<$<C_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wformat=2 -Wnull-dereference -Wdouble-promotion -Werror>
 )
 
 # Include directories
 target_include_directories(${PROJECT_NAME}
-  INTERFACE
+  PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
