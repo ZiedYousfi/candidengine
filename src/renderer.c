@@ -6,7 +6,7 @@ static Candid_3D_Mesh *Candid_CreateCubeMesh(const float size) {
   const size_t vertex_count = 8;
   const size_t triangle_count = 12;
 
-  Candid_3D_Mesh *mesh = (Candid_3D_Mesh *)malloc(sizeof(Candid_3D_Mesh));
+  Candid_3D_Mesh *mesh = malloc(sizeof(Candid_3D_Mesh));
   if (!mesh)
     return NULL;
 
@@ -15,7 +15,7 @@ static Candid_3D_Mesh *Candid_CreateCubeMesh(const float size) {
 
   /* allocate the SoA vertex arrays (x, y, z) */
   for (int i = 0; i < 3; ++i) {
-    mesh->vertices[i] = (float *)malloc(vertex_count * sizeof(float));
+    mesh->vertices[i] = malloc(vertex_count * sizeof(float));
     if (!mesh->vertices[i]) {
       /* on failure free previously allocated arrays and the mesh */
       for (int j = 0; j < i; ++j)
@@ -27,8 +27,7 @@ static Candid_3D_Mesh *Candid_CreateCubeMesh(const float size) {
 
   /* allocate triangle index arrays (a, b, c) */
   for (int i = 0; i < 3; ++i) {
-    mesh->triangle_vertex[i] =
-        (size_t *)malloc(triangle_count * sizeof(size_t));
+    mesh->triangle_vertex[i] = malloc(triangle_count * sizeof(size_t));
     if (!mesh->triangle_vertex[i]) {
       for (int j = 0; j < 3; ++j) {
         if (mesh->vertices[j])
