@@ -6,6 +6,8 @@
  * This code is public domain. Feel free to use it for any purpose!
  */
 
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_log.h>
 #include <stdio.h>
 #define SDL_MAIN_USE_CALLBACKS 1 /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
@@ -62,6 +64,72 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   /* put the newly-cleared rendering on the screen. */
   SDL_RenderPresent(renderer);
+
+  SDL_Event ev;
+  while (SDL_PollEvent(&ev)) {
+    SDL_Log("received event");
+    switch (ev.type) {
+    case SDL_EVENT_KEY_DOWN:
+      switch (ev.key.key) {
+      case SDLK_UP:
+      case SDLK_W:
+        SDL_Log("W Down");
+        break;
+      case SDLK_LEFT:
+      case SDLK_A:
+        SDL_Log("A Down");
+        break;
+
+      case SDLK_DOWN:
+      case SDLK_S:
+        SDL_Log("S Down");
+        break;
+      case SDLK_RIGHT:
+      case SDLK_D:
+        SDL_Log("D Down");
+        break;
+      case SDLK_RETURN:
+      case SDLK_SPACE:
+        SDL_Log("Space Down");
+        break;
+      case SDLK_ESCAPE:
+        SDL_Log("Escape Down");
+        break;
+      }
+      break;
+    case SDL_EVENT_KEY_UP:
+      switch (ev.key.key) {
+      case SDLK_UP:
+        SDL_Log("W Up");
+      case SDLK_W:
+        SDL_Log("W Up");
+        break;
+      case SDLK_LEFT:
+        SDL_Log("A Up");
+      case SDLK_A:
+        SDL_Log("A Up");
+        break;
+      case SDLK_DOWN:
+        SDL_Log("S Up");
+        break;
+      case SDLK_S:
+        SDL_Log("S Up");
+        break;
+      case SDLK_RIGHT:
+        SDL_Log("D Up");
+      case SDLK_D:
+        SDL_Log("D Up");
+        break;
+      case SDLK_SPACE:
+        SDL_Log("Space Up");
+        break;
+      }
+
+      break;
+    case SDL_EVENT_QUIT:
+      return SDL_APP_SUCCESS;
+    }
+  }
 
   return SDL_APP_CONTINUE; /* carry on with the program! */
 }
