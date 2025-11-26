@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "dependencies": [
     "volk",
-    "sdl3"
+    {
+      "name": "sdl3",
+      "features": [
+        "vulkan"
+      ]
+    },
+    "sdl3-image",
+    "sdl3-ttf"
   ]
 }

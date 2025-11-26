@@ -26,8 +26,12 @@ set(${PROJECT_NAME}_HEADERS
 # Dependencies
 ################################################################################
 
-find_package(volk REQUIRED)
-find_package(sdl3 REQUIRED)
+# find_package(volk REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
+
+find_package(SDL3_image CONFIG REQUIRED)
+
+find_package(SDL3_ttf CONFIG REQUIRED)
 
 ################################################################################
 # Main Library Target
@@ -75,6 +79,9 @@ set_target_properties(${PROJECT_NAME}_exec PROPERTIES
 target_link_libraries(${PROJECT_NAME}_exec
   PRIVATE
     ${PROJECT_NAME}
+    SDL3::SDL3
+    $<IF:$<TARGET_EXISTS:SDL3_image::SDL3_image-shared>,SDL3_image::SDL3_image-shared,SDL3_image::SDL3_image-static>
+    SDL3_ttf::SDL3_ttf
 )
 
 # Put runtime binaries into the binary directory under a `bin` folder
