@@ -52,12 +52,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
                      1000.0; /* convert from milliseconds to seconds. */
   /* choose the color for the frame we will draw. The sine wave trick makes it
    * fade between colors smoothly. */
+  SDL_Log("beginning frame at time: %f seconds", now);
   const float red = (float)(0.5 + 0.5 * SDL_sin(now));
   const float green = (float)(0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
   const float blue = (float)(0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
-  SDL_SetRenderDrawColorFloat(
-      renderer, red, green, blue,
-      SDL_ALPHA_OPAQUE_FLOAT); /* new color, full alpha. */
+  SDL_SetRenderDrawColorFloat(renderer, red, green, blue,
+                              SDL_ALPHA_OPAQUE_FLOAT / 2); /* half-opaque */
 
   /* clear the window to the draw color. */
   SDL_RenderClear(renderer);
@@ -128,6 +128,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
       break;
     case SDL_EVENT_QUIT:
       return SDL_APP_SUCCESS;
+    default:
+      SDL_Log("Event unknown : %d", ev.type);
+      break;
     }
   }
 
