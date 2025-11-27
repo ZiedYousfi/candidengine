@@ -31,7 +31,7 @@ include(cmake/CompilerWarnings.cmake)
 # Libraries (order matters for dependencies)
 ################################################################################
 
-add_subdirectory(libs/renderer)
+add_subdirectory(renderer)
 # add_subdirectory(libs/audio)    # Future
 # add_subdirectory(libs/physics)  # Future
 # add_subdirectory(libs/core)     # Future
