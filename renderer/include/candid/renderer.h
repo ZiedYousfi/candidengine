@@ -345,6 +345,13 @@ Renderer *renderer_create(void *native_window_surface);
 void renderer_resize(Renderer *r, int width, int height);
 
 /**
+ * Set mesh data for the renderer (legacy API)
+ * @param r Renderer instance
+ * @param mesh Mesh data to use for rendering
+ */
+void renderer_set_mesh(Renderer *r, const Candid_3D_Mesh *mesh);
+
+/**
  * Draw a frame with time-based animation (legacy API)
  */
 void renderer_draw_frame(Renderer *r, float time);

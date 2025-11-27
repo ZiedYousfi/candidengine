@@ -21,9 +21,10 @@ struct Renderer {
     id<MTLRenderPipelineState> pipelineState;
     id<MTLDepthStencilState> depthState;
     id<MTLTexture> depthTexture;
+    bool hasMesh;
 };
 
-static void create_pipeline_and_buffers(Renderer *r);
+static void create_pipeline(Renderer *r);
 
 Renderer *renderer_create(void *native_window_surface) {
     Renderer *r = calloc(1, sizeof(Renderer));
@@ -45,8 +46,8 @@ Renderer *renderer_create(void *native_window_surface) {
         return NULL;
     }
 
-    // Create default pipeline/buffers
-    create_pipeline_and_buffers(r);
+    // Create default pipeline
+    create_pipeline(r);
 
     // setup default pipeline and buffers
     // We can't fully initialize some resources until we have a layer pixelFormat
@@ -56,42 +57,9 @@ Renderer *renderer_create(void *native_window_surface) {
     return r;
 }
 
-static void create_pipeline_and_buffers(Renderer *r) {
+static void create_pipeline(Renderer *r) {
     if (!r || !r->device) return;
     if (r->pipelineState) return; // already created
-
-    // Generate cube mesh
-    Candid_3D_Mesh mesh = Candid_CreateCubeMesh(1.0f);
-    if (!mesh.vertices[0] || !mesh.triangle_vertex[0]) {
-        // mesh creation failed
-        return;
-    }
-
-    const uint32_t vertexCount = (uint32_t)mesh.vertex_count;
-    const uint32_t triangleCount = (uint32_t)mesh.triangle_count;
-    uint16_t *indices = malloc(triangleCount * 3 * sizeof(uint16_t));
-    if (!indices) goto fail;
-
-    // Interleaved positions as float3
-    float *vertexData = malloc(vertexCount * 3 * sizeof(float));
-    if (!vertexData) goto fail_indices;
-
-    for (uint32_t i = 0; i < vertexCount; ++i) {
-        vertexData[i * 3 + 0] = mesh.vertices[0][i];
-        vertexData[i * 3 + 1] = mesh.vertices[1][i];
-        vertexData[i * 3 + 2] = mesh.vertices[2][i];
-    }
-
-    for (uint32_t t = 0; t < triangleCount; ++t) {
-        indices[t * 3 + 0] = (uint16_t)mesh.triangle_vertex[0][t];
-        indices[t * 3 + 1] = (uint16_t)mesh.triangle_vertex[1][t];
-        indices[t * 3 + 2] = (uint16_t)mesh.triangle_vertex[2][t];
-    }
-
-    // Create buffers
-    r->vertexBuffer = [r->device newBufferWithBytes:vertexData length:vertexCount * 3 * sizeof(float) options:MTLResourceStorageModeShared];
-    r->indexBuffer = [r->device newBufferWithBytes:indices length:triangleCount * 3 * sizeof(uint16_t) options:MTLResourceStorageModeShared];
-    r->indexCount = triangleCount * 3;
 
     // Shader source
     static const char *shaderSrc =
@@ -104,11 +72,11 @@ static void create_pipeline_and_buffers(Renderer *r) {
 
     NSError *error = nil;
     id<MTLLibrary> library = [r->device newLibraryWithSource:[NSString stringWithUTF8String:shaderSrc] options:nil error:&error];
-    if (!library) goto fail_buffers;
+    if (!library) return;
 
     id<MTLFunction> vert = [library newFunctionWithName:@"vertex_main"];
     id<MTLFunction> frag = [library newFunctionWithName:@"fragment_main"];
-    if (!vert || !frag) goto fail_library;
+    if (!vert || !frag) return;
 
     MTLRenderPipelineDescriptor *pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineDescriptor.vertexFunction = vert;
@@ -125,41 +93,64 @@ static void create_pipeline_and_buffers(Renderer *r) {
     pipelineDescriptor.vertexDescriptor = vDesc;
 
     r->pipelineState = [r->device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
-    if (!r->pipelineState) goto fail_pipeline;
+    if (!r->pipelineState) return;
 
     MTLDepthStencilDescriptor *depthDesc = [[MTLDepthStencilDescriptor alloc] init];
     depthDesc.depthCompareFunction = MTLCompareFunctionLess;
     depthDesc.depthWriteEnabled = YES;
     r->depthState = [r->device newDepthStencilStateWithDescriptor:depthDesc];
+}
 
-    // Free temporary data and mesh arrays
+void renderer_set_mesh(Renderer *r, const Candid_3D_Mesh *mesh) {
+    if (!r || !r->device || !mesh) return;
+    if (!mesh->vertices[0] || !mesh->triangle_vertex[0]) return;
+
+    // Clear existing buffers if any
+    r->vertexBuffer = nil;
+    r->indexBuffer = nil;
+    r->indexCount = 0;
+    r->hasMesh = false;
+
+    const uint32_t vertexCount = (uint32_t)mesh->vertex_count;
+    const uint32_t triangleCount = (uint32_t)mesh->triangle_count;
+
+    // Allocate temporary arrays
+    uint16_t *indices = malloc(triangleCount * 3 * sizeof(uint16_t));
+    if (!indices) return;
+
+    float *vertexData = malloc(vertexCount * 3 * sizeof(float));
+    if (!vertexData) {
+        free(indices);
+        return;
+    }
+
+    // Interleave vertex positions
+    for (uint32_t i = 0; i < vertexCount; ++i) {
+        vertexData[i * 3 + 0] = mesh->vertices[0][i];
+        vertexData[i * 3 + 1] = mesh->vertices[1][i];
+        vertexData[i * 3 + 2] = mesh->vertices[2][i];
+    }
+
+    // Build index buffer
+    for (uint32_t t = 0; t < triangleCount; ++t) {
+        indices[t * 3 + 0] = (uint16_t)mesh->triangle_vertex[0][t];
+        indices[t * 3 + 1] = (uint16_t)mesh->triangle_vertex[1][t];
+        indices[t * 3 + 2] = (uint16_t)mesh->triangle_vertex[2][t];
+    }
+
+    // Create GPU buffers
+    r->vertexBuffer = [r->device newBufferWithBytes:vertexData
+                                             length:vertexCount * 3 * sizeof(float)
+                                            options:MTLResourceStorageModeShared];
+    r->indexBuffer = [r->device newBufferWithBytes:indices
+                                            length:triangleCount * 3 * sizeof(uint16_t)
+                                           options:MTLResourceStorageModeShared];
+    r->indexCount = triangleCount * 3;
+    r->hasMesh = (r->vertexBuffer && r->indexBuffer);
+
+    // Free temporary data
     free(vertexData);
     free(indices);
-    free(mesh.vertices[0]);
-    free(mesh.vertices[1]);
-    free(mesh.vertices[2]);
-    free(mesh.triangle_vertex[0]);
-    free(mesh.triangle_vertex[1]);
-    free(mesh.triangle_vertex[2]);
-    return;
-
-fail_pipeline:
-    // fallthrough
-fail_library:
-    // fallthrough
-    // If we allocated library or buffers, release them by setting nil
-    // Keep minimal cleanup
-fail_buffers:
-    free(vertexData);
-fail_indices:
-    free(indices);
-fail:
-    free(mesh.vertices[0]);
-    free(mesh.vertices[1]);
-    free(mesh.vertices[2]);
-    free(mesh.triangle_vertex[0]);
-    free(mesh.triangle_vertex[1]);
-    free(mesh.triangle_vertex[2]);
 }
 
 void renderer_resize(Renderer *r, int width, int height) {
@@ -183,14 +174,19 @@ void renderer_draw_frame(Renderer *r, float time) {
     if (!r) return;
 
     @autoreleasepool {
-        // lazily ensure pipeline and buffers are created
-        if (!r->pipelineState || !r->vertexBuffer || !r->indexBuffer) {
-            create_pipeline_and_buffers(r);
+        // Ensure pipeline is created
+        if (!r->pipelineState) {
+            create_pipeline(r);
         }
+
+        // Skip rendering if no mesh has been set
+        if (!r->hasMesh || !r->vertexBuffer || !r->indexBuffer) {
+            return;
+        }
+
         id<CAMetalDrawable> drawable = [r->layer nextDrawable];
         if (!drawable) return;
-        if (!r->pipelineState || !r->vertexBuffer || !r->indexBuffer) {
-            // If lazy init still failed, skip rendering this frame
+        if (!r->pipelineState) {
             return;
         }
         // Ensure we have the pipeline and buffers (already checked above)
