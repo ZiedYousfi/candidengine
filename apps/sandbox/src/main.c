@@ -9,6 +9,14 @@
 #endif
 
 int main(int argc, char **argv) {
+
+  int result = 0;
+  SDL_Window *window = NULL;
+  SDL_MetalView view = NULL;
+  void *layer_ptr = NULL;
+  Candid_Renderer *renderer = NULL;
+  Candid_Mesh *cube_mesh = NULL;
+
   (void)argc;
   (void)argv;
 
@@ -17,31 +25,27 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  SDL_Window *window =
-      SDL_CreateWindow("Cross-backend renderer (SDL3 + Metal backend)", 800,
-                       600, SDL_WINDOW_METAL | SDL_WINDOW_RESIZABLE);
+  window = SDL_CreateWindow("Cross-backend renderer (SDL3 + Metal backend)",
+                            800, 600, SDL_WINDOW_METAL | SDL_WINDOW_RESIZABLE);
   if (!window) {
     SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
-    SDL_Quit();
-    return 1;
+    result = 1;
+    goto cleanup;
   }
 
   // Metal SDL view
-  SDL_MetalView view = SDL_Metal_CreateView(window);
+  view = SDL_Metal_CreateView(window);
   if (!view) {
     SDL_Log("SDL_Metal_CreateView failed: %s", SDL_GetError());
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return 1;
+    result = 1;
+    goto cleanup;
   }
 
-  void *layer_ptr = SDL_Metal_GetLayer(view);
+  layer_ptr = SDL_Metal_GetLayer(view);
   if (!layer_ptr) {
     SDL_Log("SDL_Metal_GetLayer failed: %s", SDL_GetError());
-    SDL_Metal_DestroyView(view);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return 1;
+    result = 1;
+    goto cleanup;
   }
 
   int w, h;
@@ -58,10 +62,9 @@ int main(int argc, char **argv) {
       .app_name = "Candid Sandbox",
   };
 
-  Candid_Renderer *renderer = NULL;
-  Candid_Result result = candid_renderer_create(&config, &renderer);
-  if (result != CANDID_SUCCESS) {
-    SDL_Log("candid_renderer_create failed: %d", result);
+  Candid_Result candid_result = candid_renderer_create(&config, &renderer);
+  if (candid_result != CANDID_SUCCESS) {
+    SDL_Log("candid_renderer_create failed: %d", candid_result);
     SDL_Metal_DestroyView(view);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -69,9 +72,9 @@ int main(int argc, char **argv) {
   }
 
   Candid_MeshData cube_data = {0};
-  result = candid_mesh_create_cube(1.0f, &cube_data);
-  if (result != CANDID_SUCCESS) {
-    SDL_Log("Failed to create cube mesh data: %d", result);
+  candid_result = candid_mesh_create_cube(1.0f, &cube_data);
+  if (candid_result != CANDID_SUCCESS) {
+    SDL_Log("Failed to create cube mesh data: %d", candid_result);
     candid_renderer_destroy(renderer);
     SDL_Metal_DestroyView(view);
     SDL_DestroyWindow(window);
@@ -86,16 +89,11 @@ int main(int argc, char **argv) {
   };
   candid_mesh_calculate_aabb(&cube_data, &mesh_desc.bounds);
 
-  Candid_Mesh *cube_mesh = NULL;
-  result = candid_renderer_create_mesh(renderer, &mesh_desc, &cube_mesh);
-  if (result != CANDID_SUCCESS) {
-    SDL_Log("Failed to create GPU mesh: %d", result);
-    candid_mesh_data_free(&cube_data);
-    candid_renderer_destroy(renderer);
-    SDL_Metal_DestroyView(view);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return 1;
+  candid_result = candid_renderer_create_mesh(renderer, &mesh_desc, &cube_mesh);
+  if (candid_result != CANDID_SUCCESS) {
+    SDL_Log("Failed to create GPU mesh: %d", candid_result);
+    result = 1;
+    goto cleanup;
   }
 
   // Free CPU-side mesh data (GPU has its own copy)
@@ -141,14 +139,13 @@ int main(int argc, char **argv) {
     candid_renderer_begin_frame(renderer);
     candid_renderer_draw_mesh(renderer, cube_mesh, NULL, &transform);
     candid_renderer_end_frame(renderer);
-
   }
 
-  // Cleanup
+cleanup:
   candid_renderer_destroy_mesh(renderer, cube_mesh);
   candid_renderer_destroy(renderer);
   SDL_Metal_DestroyView(view);
   SDL_DestroyWindow(window);
   SDL_Quit();
-  return 0;
+  return result;
 }
