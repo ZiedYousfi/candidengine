@@ -142,7 +142,6 @@ int main(int argc, char **argv) {
     candid_renderer_draw_mesh(renderer, cube_mesh, NULL, &transform);
     candid_renderer_end_frame(renderer);
 
-    SDL_Delay(16);
   }
 
   // Cleanup
