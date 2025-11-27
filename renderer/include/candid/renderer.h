@@ -307,60 +307,6 @@ float candid_renderer_get_delta_time(Candid_Renderer *renderer);
  */
 uint64_t candid_renderer_get_frame_count(Candid_Renderer *renderer);
 
-/*******************************************************************************
- * Legacy API (for backwards compatibility)
- *
- * These functions maintain compatibility with the original simple API.
- * They create an internal renderer with default settings.
- ******************************************************************************/
-
-/**
- * Legacy mesh type (deprecated, use Candid_MeshData instead)
- */
-typedef struct {
-  float *vertices[3];
-  size_t vertex_count;
-  size_t *triangle_vertex[3];
-  size_t triangle_count;
-} Candid_3D_Mesh;
-
-/**
- * Create a cube mesh with the given size (legacy API)
- * @deprecated Use candid_mesh_create_cube instead
- */
-Candid_3D_Mesh Candid_CreateCubeMesh(float size);
-
-typedef struct Renderer Renderer;
-
-/**
- * Create a simple renderer (legacy API)
- * @param native_window_surface Platform surface (CAMetalLayer, etc.)
- * @return Renderer handle or NULL on failure
- */
-Renderer *renderer_create(void *native_window_surface);
-
-/**
- * Resize the renderer surface (legacy API)
- */
-void renderer_resize(Renderer *r, int width, int height);
-
-/**
- * Set mesh data for the renderer (legacy API)
- * @param r Renderer instance
- * @param mesh Mesh data to use for rendering
- */
-void renderer_set_mesh(Renderer *r, const Candid_3D_Mesh *mesh);
-
-/**
- * Draw a frame with time-based animation (legacy API)
- */
-void renderer_draw_frame(Renderer *r, float time);
-
-/**
- * Destroy the renderer (legacy API)
- */
-void renderer_destroy(Renderer *r);
-
 #ifdef __cplusplus
 }
 #endif

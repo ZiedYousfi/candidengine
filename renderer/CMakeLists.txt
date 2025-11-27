@@ -37,7 +37,6 @@ if(APPLE)
   enable_language(OBJC)
   list(APPEND ${PROJECT_NAME}_SOURCES
     src/backend_metal.m
-    src/renderer_metal.m  # Legacy compatibility
   )
 endif()
 
