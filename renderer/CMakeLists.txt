@@ -42,12 +42,13 @@ endif()
 add_library(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES} ${${PROJECT_NAME}_HEADERS})
 add_library(candid::renderer ALIAS ${PROJECT_NAME})
 
-# Compiler warnings (from parent cmake/) - applied directly, not linked
+# Compiler warnings (from parent cmake/) - link the shared interface target
 if(TARGET candid::compiler_warnings)
-  get_target_property(_warnings candid_compiler_warnings INTERFACE_COMPILE_OPTIONS)
-  if(_warnings)
-    target_compile_options(${PROJECT_NAME} PRIVATE ${_warnings})
-  endif()
+  # Link the interface target so the compile options are inherited by this target.
+  target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+      candid::compiler_warnings
+  )
 endif()
 
 # Public includes (consumers use: #include <candid/renderer.h>)
@@ -84,6 +85,15 @@ install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# If a shared interface target for compiler warnings exists, also install/export it
+# so the exported CMake config for this package doesn't reference a non-exported target.
+if(TARGET candid_compiler_warnings)
+  install(TARGETS candid_compiler_warnings
+    EXPORT ${PROJECT_NAME}Targets
+    COMPONENT Devel
+  )
+endif()
 
 install(DIRECTORY include/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
