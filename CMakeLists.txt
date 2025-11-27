@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(Candid VERSION 0.1.0 LANGUAGES C)
+project(CandidEngine
+  VERSION 0.1.0
+  LANGUAGES C
+  DESCRIPTION "Candid Game Engine"
+)
+
+################################################################################
+# Global Settings
+################################################################################
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -8,75 +16,29 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Library sources
-set(${PROJECT_NAME}_SOURCES
-  src/renderer.c
-)
-# Library headers
-set(${PROJECT_NAME}_HEADERS
-  include/renderer.h
-)
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 ################################################################################
-# Dependencies
+# Shared CMake Modules
 ################################################################################
 
-# find_package(volk REQUIRED)
-find_package(SDL3 CONFIG REQUIRED)
-
-find_package(SDL3_image CONFIG REQUIRED)
-
-find_package(SDL3_ttf CONFIG REQUIRED)
+include(cmake/CompilerWarnings.cmake)
 
 ################################################################################
-# Main Library Target
+# Libraries (order matters for dependencies)
 ################################################################################
 
-add_library(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES} ${${PROJECT_NAME}_HEADERS})
+add_subdirectory(libs/renderer)
+# add_subdirectory(libs/audio)    # Future
+# add_subdirectory(libs/physics)  # Future
+# add_subdirectory(libs/core)     # Future
 
-# Compiler options (cross-platform)
-target_compile_options(${PROJECT_NAME}
-  PRIVATE
-    $<$<C_COMPILER_ID:MSVC>:/W4 /permissive->
-    $<$<C_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wformat=2 -Wnull-dereference -Wdouble-promotion -Werror>
-)
+################################################################################
+# Applications
+################################################################################
 
-# Include directories
-target_include_directories(${PROJECT_NAME}
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-
-# Link dependencies
-# target_link_libraries(${PROJECT_NAME}
-#   PRIVATE
-#     ${LUA_LIBRARIES}
-#     CLI11::CLI11
-#     sol2::sol2
-# )
-
-add_executable(${PROJECT_NAME}_exec
-  src/main.c
-)
-
-set_target_properties(${PROJECT_NAME}_exec PROPERTIES
-  OUTPUT_NAME ${PROJECT_NAME}
-  C_STANDARD 23
-  C_STANDARD_REQUIRED ON
-  C_EXTENSIONS OFF
-)
-
-target_link_libraries(${PROJECT_NAME}_exec
-  PRIVATE
-    ${PROJECT_NAME}
-    SDL3::SDL3
-    $<IF:$<TARGET_EXISTS:SDL3_image::SDL3_image-shared>,SDL3_image::SDL3_image-shared,SDL3_image::SDL3_image-static>
-    SDL3_ttf::SDL3_ttf
-)
-
-# Put runtime binaries into the binary directory under a `bin` folder
-set_target_properties(${PROJECT_NAME}_exec PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
+add_subdirectory(apps/sandbox)
 

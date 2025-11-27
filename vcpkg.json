@@ -1,8 +1,10 @@
 {
-  "name": "candid",
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "candid-engine",
   "version": "0.1.0",
+  "description": "Candid Game Engine - Modular game engine",
+  "homepage": "https://github.com/ZiedYousfi/candidengine",
   "dependencies": [
-    "volk",
     {
       "name": "sdl3",
       "features": [
@@ -10,6 +12,15 @@
       ]
     },
     "sdl3-image",
-    "sdl3-ttf"
-  ]
+    "sdl3-ttf",
+    "volk"
+  ],
+  "features": {
+    "vulkan": {
+      "description": "Vulkan rendering backend",
+      "dependencies": [
+        "volk"
+      ]
+    }
+  }
 }
