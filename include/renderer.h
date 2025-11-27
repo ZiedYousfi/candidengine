@@ -11,4 +11,4 @@ typedef struct {
   size_t triangle_count;
 } Candid_3D_Mesh;
 
-static Candid_3D_Mesh *Candid_CreateCubeMesh(const float size);
+static Candid_3D_Mesh Candid_CreateCubeMesh(const float size);

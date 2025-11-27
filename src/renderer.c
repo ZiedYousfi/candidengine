@@ -2,70 +2,78 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Candid_3D_Mesh *Candid_CreateCubeMesh(const float size) {
+static Candid_3D_Mesh Candid_CreateCubeMesh(const float size) {
   const size_t vertex_count = 8;
   const size_t triangle_count = 12;
 
-  Candid_3D_Mesh *mesh = malloc(sizeof(Candid_3D_Mesh));
-  if (!mesh)
-    return NULL;
+  Candid_3D_Mesh mesh = {.vertices = {[0 ... 2] = NULL},
+                         .vertex_count = vertex_count,
+                         .triangle_vertex = {[0 ... 2] = NULL},
+                         .triangle_count = triangle_count};
 
-  mesh->vertex_count = vertex_count;
-  mesh->triangle_count = triangle_count;
+  const float half = size / 2.0f;
 
-  /* allocate the SoA vertex arrays (x, y, z) */
-  for (int i = 0; i < 3; ++i) {
-    mesh->vertices[i] = malloc(vertex_count * sizeof(float));
-    if (!mesh->vertices[i]) {
-      /* on failure free previously allocated arrays and the mesh */
-      for (int j = 0; j < i; ++j)
-        free(mesh->vertices[j]);
-      free(mesh);
-      return NULL;
-    }
-  }
+  float *vx = NULL, *vy = NULL, *vz = NULL;
+  size_t *t0 = NULL, *t1 = NULL, *t2 = NULL;
 
-  /* allocate triangle index arrays (a, b, c) */
-  for (int i = 0; i < 3; ++i) {
-    mesh->triangle_vertex[i] = malloc(triangle_count * sizeof(size_t));
-    if (!mesh->triangle_vertex[i]) {
-      for (int j = 0; j < 3; ++j) {
-        if (mesh->vertices[j])
-          free(mesh->vertices[j]);
-      }
-      for (int j = 0; j < i; ++j)
-        free(mesh->triangle_vertex[j]);
-      free(mesh);
-      return NULL;
-    }
-  }
+  vx = malloc(vertex_count * sizeof(float));
+  vy = malloc(vertex_count * sizeof(float));
+  vz = malloc(vertex_count * sizeof(float));
+  if (!vx || !vy || !vz) goto fail;
 
-  const float hs = size * 0.5f; /* half-size */
+  t0 = malloc(triangle_count * sizeof(size_t));
+  t1 = malloc(triangle_count * sizeof(size_t));
+  t2 = malloc(triangle_count * sizeof(size_t));
+  if (!t0 || !t1 || !t2) goto fail;
 
-  /* vertex positions (index 0..7) */
-  const float vx[8] = {-hs, hs, hs, -hs, -hs, hs, hs, -hs};
-  const float vy[8] = {-hs, -hs, hs, hs, -hs, -hs, hs, hs};
-  const float vz[8] = {-hs, -hs, -hs, -hs, hs, hs, hs, hs};
+  /* Vertices (x, y, z) */
+  vx[0] = -half; vy[0] = -half; vz[0] = -half; /* 0 */
+  vx[1] =  half; vy[1] = -half; vz[1] = -half; /* 1 */
+  vx[2] =  half; vy[2] =  half; vz[2] = -half; /* 2 */
+  vx[3] = -half; vy[3] =  half; vz[3] = -half; /* 3 */
+  vx[4] = -half; vy[4] = -half; vz[4] =  half; /* 4 */
+  vx[5] =  half; vy[5] = -half; vz[5] =  half; /* 5 */
+  vx[6] =  half; vy[6] =  half; vz[6] =  half; /* 6 */
+  vx[7] = -half; vy[7] =  half; vz[7] =  half; /* 7 */
 
-  /* copy the vertex positions into the SoA arrays */
-  for (size_t i = 0; i < vertex_count; ++i) {
-    mesh->vertices[0][i] = vx[i];
-    mesh->vertices[1][i] = vy[i];
-    mesh->vertices[2][i] = vz[i];
-  }
+  /* Triangles (each triangle is three vertex indices) */
+  /* Front (z+) */
+  t0[0] = 4; t1[0] = 5; t2[0] = 6;
+  t0[1] = 4; t1[1] = 6; t2[1] = 7;
+  /* Back (z-) */
+  t0[2] = 0; t1[2] = 3; t2[2] = 2;
+  t0[3] = 0; t1[3] = 2; t2[3] = 1;
+  /* Right (x+) */
+  t0[4] = 1; t1[4] = 2; t2[4] = 6;
+  t0[5] = 1; t1[5] = 6; t2[5] = 5;
+  /* Left (x-) */
+  t0[6] = 0; t1[6] = 4; t2[6] = 7;
+  t0[7] = 0; t1[7] = 7; t2[7] = 3;
+  /* Top (y+) */
+  t0[8] = 3; t1[8] = 7; t2[8] = 6;
+  t0[9] = 3; t1[9] = 6; t2[9] = 2;
+  /* Bottom (y-) */
+  t0[10] = 0; t1[10] = 1; t2[10] = 5;
+  t0[11] = 0; t1[11] = 5; t2[11] = 4;
 
-  /* Triangles (12), two triangles per cube face
-     using the vertex indices defined above */
-  const size_t tri_a[12] = {0, 2, 4, 6, 1, 6, 0, 7, 3, 6, 0, 5};
-  const size_t tri_b[12] = {1, 3, 5, 7, 5, 2, 4, 3, 2, 7, 1, 4};
-  const size_t tri_c[12] = {2, 0, 6, 4, 6, 1, 7, 0, 6, 3, 5, 0};
+  mesh.vertices[0] = vx;
+  mesh.vertices[1] = vy;
+  mesh.vertices[2] = vz;
 
-  /* copy triangle indices into the SoA arrays */
-  for (size_t i = 0; i < triangle_count; ++i) {
-    mesh->triangle_vertex[0][i] = tri_a[i];
-    mesh->triangle_vertex[1][i] = tri_b[i];
-    mesh->triangle_vertex[2][i] = tri_c[i];
-  }
+  mesh.triangle_vertex[0] = t0;
+  mesh.triangle_vertex[1] = t1;
+  mesh.triangle_vertex[2] = t2;
+
+  return mesh;
+
+fail:
+  free(vx);
+  free(vy);
+  free(vz);
+  free(t0);
+  free(t1);
+  free(t2);
+  /* mesh still has NULL pointers for vertices and triangles */
 
   return mesh;
 }
