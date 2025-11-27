@@ -7,21 +7,43 @@ project(candid_renderer
 )
 
 ################################################################################
+# Options
+################################################################################
+
+option(CANDID_VULKAN_SUPPORT "Enable Vulkan backend support" OFF)
+option(CANDID_SHADER_COMPILATION "Enable runtime shader compilation" ON)
+
+################################################################################
 # Sources
 ################################################################################
 
 set(${PROJECT_NAME}_SOURCES
   src/renderer.c
+  src/mesh.c
+  src/backend.c
 )
 
 set(${PROJECT_NAME}_HEADERS
+  include/candid/types.h
+  include/candid/mesh.h
+  include/candid/shader.h
+  include/candid/material.h
+  include/candid/backend.h
   include/candid/renderer.h
 )
 
 # Backend Metal pour macOS uniquement
 if(APPLE)
   enable_language(OBJC)
-  list(APPEND ${PROJECT_NAME}_SOURCES src/renderer_metal.m)
+  list(APPEND ${PROJECT_NAME}_SOURCES
+    src/backend_metal.m
+    src/renderer_metal.m  # Legacy compatibility
+  )
+endif()
+
+# Backend Vulkan (cross-platform)
+if(CANDID_VULKAN_SUPPORT)
+  list(APPEND ${PROJECT_NAME}_SOURCES src/backend_vulkan.c)
 endif()
 
 ################################################################################
@@ -33,6 +55,10 @@ find_package(SDL3 CONFIG REQUIRED)
 if(APPLE)
   find_library(METAL_FRAMEWORK Metal REQUIRED)
   find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
+endif()
+
+if(CANDID_VULKAN_SUPPORT)
+  find_package(volk CONFIG REQUIRED)
 endif()
 
 ################################################################################
@@ -50,6 +76,12 @@ if(TARGET candid::compiler_warnings)
       candid::compiler_warnings
   )
 endif()
+
+# Compile definitions
+target_compile_definitions(${PROJECT_NAME}
+  PRIVATE
+    $<$<BOOL:${CANDID_VULKAN_SUPPORT}>:CANDID_VULKAN_SUPPORT>
+)
 
 # Public includes (consumers use: #include <candid/renderer.h>)
 target_include_directories(${PROJECT_NAME}
@@ -71,6 +103,39 @@ if(APPLE)
       ${METAL_FRAMEWORK}
       ${QUARTZCORE_FRAMEWORK}
   )
+endif()
+
+# Vulkan support via volk
+if(CANDID_VULKAN_SUPPORT)
+  target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+      volk::volk
+  )
+endif()
+
+################################################################################
+# Shader Compilation Support
+################################################################################
+
+# Create a custom target for shader compilation tools
+if(CANDID_SHADER_COMPILATION)
+  # We can add shader compilation targets here for HLSL -> SPIR-V / Metal
+  # This requires external tools like:
+  # - dxc (DirectX Shader Compiler) for HLSL to SPIR-V
+  # - spirv-cross for SPIR-V to MSL
+  # - metal for Metal shader compilation
+
+  # Example: Find shader compiler tools
+  find_program(DXC_EXECUTABLE dxc HINTS "$ENV{VULKAN_SDK}/bin")
+  find_program(SPIRV_CROSS_EXECUTABLE spirv-cross HINTS "$ENV{VULKAN_SDK}/bin")
+
+  if(DXC_EXECUTABLE AND SPIRV_CROSS_EXECUTABLE)
+    message(STATUS "Shader compilation tools found:")
+    message(STATUS "  DXC: ${DXC_EXECUTABLE}")
+    message(STATUS "  SPIRV-Cross: ${SPIRV_CROSS_EXECUTABLE}")
+  else()
+    message(STATUS "Shader compilation tools not found - using pre-compiled shaders only")
+  endif()
 endif()
 
 ################################################################################
